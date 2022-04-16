@@ -10,4 +10,5 @@ jobs:
       - name: Test Action
         uses: ./
         with:
-          foo: bar
+          target: .
+          values: '{}'
