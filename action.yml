@@ -23,36 +23,36 @@ runs:
         VALUES: ${{ inputs.values }}
         KEYWORD: ${{ inputs.keyword }}
       run: |
-        substitute_placeholders_in_target () {
+        substitute_placeholders_in_dir () {
           cd "$1"
           for item in *; do
-            substitute_placeholders_in_name "$item"
             substitute_placeholders_in_content "$item"        
+            substitute_placeholders_in_name "$item"
           done
-          cd ..
+          cd -
         }
           
         substitute_placeholders_in_name () {
-          item="$1"
-          item_substitute_name=$(substitute_placeholders "$item")
-          if [ "$item" != "$item_substitute_name" ]; then
-            mv "$item" "$item_substitute_name"
-            item=$item_substitute_name
+          local name="$1"
+          local substitute_name=$(substitute_placeholders_in_string "$item")
+          if [ "$name" != "$substitute_name" ]; then
+            mv "$name" "$substitute_name"
           fi
         }
 
         substitute_placeholders_in_content () {
-          item="$1"
+          local item="$1"
           if [[ -d $item ]]; then
-            [ "$(ls -A "$item")" ] && apply_config "$item"
+            [ "$(ls -A "$item")" ] && substitute_placeholders_in_dir "$item"
           else
-            substitute_placeholders "$(cat $item)" > $item
+            substitute_placeholders_in_string "$(cat $item)" > $item
           fi
         }
           
-        substitute_placeholders () {
-          str="$1"
-          keys=$(echo "$VALUES" | jq -r '. | keys[]')
+        substitute_placeholders_in_string () {
+          local str="$1"
+          local keys=$(echo "$VALUES" | jq -r '. | keys[]')
+          local value
           for key in $keys; do
             value=$(echo "$VALUES" | jq -r ".$key")
             str=$(echo "$str" | sed "s/{{\s*$KEYWORD.$key\s*}}/$value/g")
@@ -60,4 +60,4 @@ runs:
           echo "$str"
         }
           
-        substitute_placeholders_in_target "$TARGET"
+        substitute_placeholders_in_dir "$TARGET"
