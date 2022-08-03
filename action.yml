@@ -1,5 +1,5 @@
-name: Insert Template Variables
-description: Inserts Template Variables
+name: Insert Variables
+description: Inserts Variables
 branding:
   icon: file-text
   color: blue
