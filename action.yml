@@ -61,7 +61,7 @@ runs:
                 | jq -r --arg key "$key" '.[$key]' \
                 | sed -e ':a' -e '$!{N;ba' -e '}' -e 's/[&/\]/\\&/g; s/\n/\\&/g'
             )
-            str=$(echo "$str" | sed "s/{{\s*repo.url\s*}}/$value_escaped/g")
+            str=$(echo "$str" | sed "s/{{\s*$CONTEXT.$key\s*}}/$value_escaped/g")
           done
           echo "$str"
         }
