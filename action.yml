@@ -50,11 +50,18 @@ runs:
           
         insert_variables_in_string () {
           local str="$1"
-          local keys=$(echo "$VALUES" | jq -r '. | keys[]')
-          local value
-          for key in $keys; do
-            value=$(echo "$VALUES" | jq -r ".$key")
-            str=$(echo "$str" | sed "s/{{\s*$CONTEXT.$key\s*}}/$value/g")
+          local keys=$(echo "$VALUES" | jq keys)
+          local key
+          local value_escaped
+          for (( i=0; i<$(echo "$keys" | jq length); i++ )); do
+            key=$(echo "$keys" | jq -r --argjson i $i '.[$i]')
+            # See https://stackoverflow.com/a/29613573
+            value_escaped=$(
+                echo "$VALUES" \
+                | jq -r --arg key "$key" '.[$key]' \
+                | sed -e ':a' -e '$!{N;ba' -e '}' -e 's/[&/\]/\\&/g; s/\n/\\&/g'
+            )
+            str=$(echo "$str" | sed "s/{{\s*repo.url\s*}}/$value_escaped/g")
           done
           echo "$str"
         }
