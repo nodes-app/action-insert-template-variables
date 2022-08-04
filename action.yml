@@ -43,17 +43,19 @@ runs:
         }
 
         insert_variables () {
-          echo "$1"
           if [ -d "$1" ]; then
             if [ "$(ls -A "$1")" ]; then
-              for item in "$1"/*; do insert_variables "$item"; done
+              local items=$(ls -A1 "$1" | jq -Rs 'split("\n")[:-1]')
+              for (( i=0; i<$(echo "$items" | jq length); i++ )); do
+                insert_variables "$1/$(echo "$items" | jq -r --argjson i $i '.[$i]')"
+              done
             fi
           else
-            sed -i "$insert_expression" "$item"
+            sed -i "$insert_expression" "$1"
           fi
           local name=$(basename "$1")
           local substitute_name=$(echo "$name" | sed "$insert_expression")
-          #[ "$substitute_name" != "$name" ] && mv "$1" "$(dirname "$1")/$substitute_name"
+          [ "$substitute_name" != "$name" ] && mv "$1" "$(dirname "$1")/$substitute_name"
         }
         
         insert_expression=$(create_insert_expression)
