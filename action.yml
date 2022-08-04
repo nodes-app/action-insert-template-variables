@@ -45,16 +45,15 @@ runs:
         insert_variables () {
           if [ -d "$1" ]; then
             if [ "$(ls -A "$1")" ]; then
-              local name substitute_name
               for item in "$1"/*; do insert_variables "$item"; done
             fi
           else
             sed -i "$insert_expression" "$item"
           fi
-          name=$(basename "$1")
-          substitute_name=$(echo "$name" | sed "$insert_expression")
+          local name=$(basename "$1")
+          local substitute_name=$(echo "$name" | sed "$insert_expression")
           [ "$substitute_name" != "$name" ] && mv "$1" "$(dirname "$1")/$substitute_name"
         }
         
         insert_expression=$(create_insert_expression)
-        insert_variables "$TARGET"
+        #insert_variables "$TARGET"
