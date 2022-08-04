@@ -44,11 +44,11 @@ runs:
 
         insert_variables () {
           if [ -d "$1" ]; then
-            if [ "$(ls -A "$1")" ]; then
-              for item in "$1"/*; do insert_variables "$item"; done
-            fi
+            #if [ "$(ls -A "$1")" ]; then
+            #  for item in "$1"/*; do insert_variables "$item"; done
+            #fi
           else
-            sed -i "$insert_expression" "$item"
+            #sed -i "$insert_expression" "$item"
           fi
           local name=$(basename "$1")
           local substitute_name=$(echo "$name" | sed "$insert_expression")
