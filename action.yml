@@ -15,55 +15,45 @@ inputs:
     required: true
 runs:
   using: composite
-  steps:
+  steps:        
+
     - shell: bash
       env:
         TARGET: ${{ inputs.target }}
         CONTEXT: ${{ inputs.context }}
         VALUES: ${{ inputs.values }}
       run: |
-        insert_variables_in_dir () {
-          cd "$1"
-          for item in *; do
-            insert_variables_in_content "$item"        
-            insert_variables_in_name "$item"
-          done
-          cd -
-        }
-          
-        insert_variables_in_name () {
-          local name="$1"
-          local substitute_name=$(insert_variables_in_string "$item")
-          if [ "$name" != "$substitute_name" ]; then
-            mv "$name" "$substitute_name"
-          fi
-        }
-
-        insert_variables_in_content () {
-          local item="$1"
-          if [[ -d $item ]]; then
-            [ "$(ls -A "$item")" ] && insert_variables_in_dir "$item"
-          else
-            insert_variables_in_string "$(cat $item)" > $item
-          fi
-        }
-          
-        insert_variables_in_string () {
-          local str="$1"
+        create_substitution_expression() {
           local keys=$(echo "$VALUES" | jq keys)
-          local key
-          local value_escaped
+          local cmds='[]'
+          local key value_escaped cmd
           for (( i=0; i<$(echo "$keys" | jq length); i++ )); do
             key=$(echo "$keys" | jq -r --argjson i $i '.[$i]')
             # See https://stackoverflow.com/a/29613573
-            value_escaped=$(
-                echo "$VALUES" \
-                | jq -r --arg key "$key" '.[$key]' \
-                | sed -e ':a' -e '$!{N;ba' -e '}' -e 's/[&/\]/\\&/g; s/\n/\\&/g'
+            IFS= read -d '' -r < <(
+              echo "$VALUES" \
+              | jq -r --arg key "$key" '.[$key]' \
+              | sed -e ':a' -e '$!{N;ba' -e '}' -e 's/[&/\]/\\&/g; s/\n/\\&/g'
             )
-            str=$(echo "$str" | sed "s/{{\s*$CONTEXT.$key\s*}}/$value_escaped/g")
+            value_escaped=${REPLY%$'\n'}
+            cmd="s/{{\s*$CONTEXT.$key\s*}}/$value_escaped/g"
+            cmds=$(echo "$cmds" | jq --arg cmd "$cmd" '. += [$cmd]')
           done
-          echo "$str"
+          echo "$cmds" | jq -r 'join("; ")'
         }
-          
-        insert_variables_in_dir "$TARGET"
+
+        insert_variables () {
+          local substitute_name
+          for item in "$1/*"; do
+            if [ -d "$1/$item" ]; then
+              [ -z $(ls -A "$1/$item") ] && insert_variables "$1/$item"
+            else
+              cat "$1/$item" | sed "$substitution_expression" > "$1/$item"
+            fi
+            substitute_name=$(echo "$item" | sed "$substitution_expression")
+            [ "$substitute_name" != "$item" ] && mv "$1/$item" "$1/$substitute_name"
+          done
+        }
+        
+        substitution_expression=$(create_substitution_expression)
+        insert_variables "$TARGET"
