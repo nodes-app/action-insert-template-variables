@@ -43,10 +43,9 @@ runs:
         }
 
         insert_variables () {
-          dirname "$1"
+          echo "$1"
           if [ -d "$1" ]; then
             if [ "$(ls -A "$1")" ]; then
-              echo "!"
               for item in "$1"/*; do insert_variables "$item"; done
             fi
           else
