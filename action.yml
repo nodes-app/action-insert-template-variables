@@ -56,4 +56,4 @@ runs:
         }
         
         insert_expression=$(create_insert_expression)
-        #insert_variables "$TARGET"
+        insert_variables "$TARGET"
