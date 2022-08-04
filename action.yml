@@ -23,7 +23,7 @@ runs:
         CONTEXT: ${{ inputs.context }}
         VALUES: ${{ inputs.values }}
       run: |
-        create_insertion_expression() {
+        create_insert_expression() {
           local keys=$(echo "$VALUES" | jq keys)
           local cmds='[]'
           local key value_escaped cmd
@@ -43,17 +43,18 @@ runs:
         }
 
         insert_variables () {
-          local name substitute_name
-          for item in "$1"/*; do
-            [ -d "$item" ] && \
-              [ -z "$(ls -A "$item")" ] && insert_variables "$item" \
-            || \
-              sed -i "$insertion_expression" "$item"
-            name=$(basename "$item")
-            substitute_name=$(echo "$name" | sed "$insertion_expression")
-            [ "$substitute_name" != "$name" ] && mv "$item" "$1/$substitute_name"
-          done
+          if [ -d "$1" ]; then
+            if [ "$(ls -A "$1")" ]; then
+              local name substitute_name
+              for item in "$1"/*; do insert_variables "$item"; done
+            fi
+          else
+            sed -i "$insert_expression" "$item"
+          fi
+          name=$(basename "$1")
+          substitute_name=$(echo "$name" | sed "$insert_expression")
+          [ "$substitute_name" != "$name" ] && mv "$1" "$(dirname "$1")/$substitute_name"
         }
         
-        insertion_expression=$(create_insertion_expression)
+        insert_expression=$(create_insert_expression)
         insert_variables "$TARGET"
