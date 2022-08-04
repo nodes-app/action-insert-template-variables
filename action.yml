@@ -55,7 +55,9 @@ runs:
           fi
           local name=$(basename "$1")
           local substitute_name=$(echo "$name" | sed "$insert_expression")
-          #[ "$substitute_name" != "$name" ] && mv "$1" "$(dirname "$1")/$substitute_name"
+          if [ "$substitute_name" != "$name" ]; then
+            mv "$1" "$(dirname "$1")/$substitute_name"
+          fi
         }
         
         insert_expression=$(create_insert_expression)
