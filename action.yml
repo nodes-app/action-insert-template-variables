@@ -43,9 +43,9 @@ runs:
         }
 
         insert_variables () {
-          if [ -d "$1" ]; then
-            if [ "$(ls -A "$1")" ]; then
-              local items=$(ls -A1 "$1" | jq -Rs 'split("\n")[:-1]')
+          if [[ -d "$1" ]]; then
+            local items=$(ls -A1 "$1" | jq -Rs 'split("\n")[:-1]')
+            if [[ $(echo "$items" | jq length) > 0 ]]; then
               for (( i=0; i<$(echo "$items" | jq length); i++ )); do
                 insert_variables "$1/$(echo "$items" | jq -r --argjson i $i '.[$i]')"
               done
@@ -55,7 +55,7 @@ runs:
           fi
           local name=$(basename "$1")
           local substitute_name=$(echo "$name" | sed "$insert_expression")
-          if [ "$substitute_name" != "$name" ]; then
+          if [[ "$substitute_name" != "$name" ]]; then
             mv "$1" "$(dirname "$1")/$substitute_name"
           fi
         }
