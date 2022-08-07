@@ -25,10 +25,10 @@ runs:
       run: |
         create_insert_expression() {
           local keys=$(echo "$VALUES" | jq keys)
-          local key_count=$(echo "$keys" | length)
+          local length=$(echo "$keys" | length)
           local cmds='[]'
           local key value_escaped cmd
-          for (( i=0; i<$key_count; i++ )); do
+          for (( i=0; i<$length; i++ )); do
             key=$(echo "$keys" | jq -r --argjson i $i '.[$i]')
             # See https://stackoverflow.com/a/29613573
             IFS= read -d '' -r < <(
@@ -45,13 +45,15 @@ runs:
 
         insert_variables () {
           if [[ -d "$1" ]]; then
-            local items=$(ls -A1 "$1" | jq -Rs 'split("\n")[:-1]')
-            local item_count=$(echo "$items" | jq length)
-            if [[ $item_count > 0 ]]; then
-              for (( i=0; i<$item_count; i++ )); do
-                insert_variables "$1/$(echo "$items" | jq -r --argjson i $i '.[$i]')"
-              done
-            fi
+            for item in "$1"/* "$1"/.[!.]* "$1"/..?*; do
+              case $item in
+                "$1/*"|"$1/.[!.]*"|"$1/..?*") 
+                  ;; # skip
+                *) 
+                  insert_variables "$item"
+                  ;;
+              esac
+            done
           else
             sed -i "$insert_expression" "$1"
           fi
