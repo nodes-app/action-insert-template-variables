@@ -25,7 +25,7 @@ runs:
       run: |
         create_insert_expression() {
           local keys=$(echo "$VALUES" | jq keys)
-          local length=$(echo "$keys" | length)
+          local length=$(echo "$keys" | jq length)
           local cmds='[]'
           local key value_escaped cmd
           for (( i=0; i<$length; i++ )); do
