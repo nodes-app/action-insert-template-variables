@@ -7,11 +7,8 @@ inputs:
   target:
     description: Target file or directory
     required: true
-  context:
-    description: Context
-    required: true
-  values:
-    description: Values in JSON format
+  contexts:
+    description: Contexts in JSON format
     required: true
 runs:
   using: composite
@@ -20,25 +17,30 @@ runs:
     - shell: bash
       env:
         TARGET: ${{ inputs.target }}
-        CONTEXT: ${{ inputs.context }}
-        VALUES: ${{ inputs.values }}
+        CONTEXTS: ${{ inputs.contexts }}
       run: |
         create_insert_expression() {
-          local keys=$(echo "$VALUES" | jq keys)
-          local length=$(echo "$keys" | jq length)
           local cmds='[]'
-          local key value_escaped cmd
-          for (( i=0; i<$length; i++ )); do
-            key=$(echo "$keys" | jq -r --argjson i $i '.[$i]')
-            # See https://stackoverflow.com/a/29613573
-            IFS= read -d '' -r < <(
-              echo "$VALUES" \
-              | jq -r --arg key "$key" '.[$key]' \
-              | sed -e ':a' -e '$!{N;ba' -e '}' -e 's/[&/\]/\\&/g; s/\n/\\&/g'
-            )
-            value_escaped=${REPLY%$'\n'}
-            cmd="s/{{\s*$CONTEXT.$key\s*}}/$value_escaped/g"
-            cmds=$(echo "$cmds" | jq --arg cmd "$cmd" '. += [$cmd]')
+          local context name values value_count keys key value_escaped cmd
+          local context_count=$(echo "$CONTEXTS" | jq length)
+          for (( i=0; i<$context_count; i++ )); do
+            context=$(echo "$CONTEXTS" | jq --argjson i $i '.[$i]')
+            name=$(echo "$context" | jq -r '.name')
+            values=$(echo "$context" | jq '.values')
+            value_count=$(echo "$values" | jq length)
+            keys=$(echo "$values" | jq keys)
+            for (( j=0; j<$value_count; j++ )); do
+              key=$(echo "$keys" | jq -r --argjson j $j '.[$j]')
+              # See https://stackoverflow.com/a/29613573
+              IFS= read -d '' -r < <(
+                echo "$values" \
+                | jq -r --arg key "$key" '.[$key]' \
+                | sed -e ':a' -e '$!{N;ba' -e '}' -e 's/[&/\]/\\&/g; s/\n/\\&/g'
+              )
+              value_escaped=${REPLY%$'\n'}
+              cmd="s/{{\s*$name.$key\s*}}/$value_escaped/g"
+              cmds=$(echo "$cmds" | jq --arg cmd "$cmd" '. += [$cmd]')
+            done
           done
           echo "$cmds" | jq -r 'join("; ")'
         }

@@ -11,5 +11,12 @@ jobs:
         uses: ./
         with:
           target: .
-          context: test
-          values: '{}'
+          contexts: |
+            [
+              {
+                "name": test,
+                "values": {
+                  "foo": "bar"
+                }
+              }
+            ]
